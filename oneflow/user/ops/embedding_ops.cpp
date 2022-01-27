@@ -37,6 +37,7 @@ namespace oneflow {
 
 /* static */ Maybe<void> EmbeddingLookupPlaceholderOp::GetSbp(user_op::SbpContext* ctx) {
   ctx->NewBuilder()
+      .Broadcast(user_op::OpArg("var", 0))
       .Split(user_op::OpArg("ids", 0), 0)
       .Split(user_op::OpArg("column_ids", 0), 0)
       .Split(user_op::OpArg("embeddings", 0), 0)
@@ -46,6 +47,9 @@ namespace oneflow {
 
 /* static */ Maybe<void> EmbeddingLookupPlaceholderOp::ModifyInputArg(
     const GetInputArgModifier& GetInputArgModifierFn, const user_op::UserOpConfWrapper& conf) {
+  //user_op::InputArgModifier* var = GetInputArgModifierFn("var", 0);
+  //CHECK_OR_RETURN(var != nullptr);
+  //var->set_requires_grad(false);
   user_op::InputArgModifier* ids = GetInputArgModifierFn("ids", 0);
   CHECK_OR_RETURN(ids != nullptr);
   ids->set_requires_grad(false);
@@ -93,6 +97,16 @@ REGISTER_USER_OP_GRAD("embedding_lookup_placeholder")
               .Attr<std::string>("embedding_options", op.attr<std::string>("embedding_options"))
               .Build();
       AddOp(grad_op);
+      if(op.NeedGenGradTensor4OpInput("var", 0)) {
+        user_op::UserOpConfWrapperBuilder var_grad_builder(op.op_name() + "_var");
+        user_op::UserOpConfWrapper var_grad_op =
+            var_grad_builder.Op("zero_like")
+                .Input("like", op.input("var", 0))
+                .Output("out")
+                .Build();
+        AddOp(var_grad_op);
+        op.BindGradTensorWithOpInput(var_grad_op.output("out", 0), "var", 0);
+      }
       return Maybe<void>::Ok();
     });
 

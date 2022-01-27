@@ -176,10 +176,14 @@ class OneEmbeddingLookup(Module):
         self.handler = OneEmbeddingHandler(
             self.embedding_options, self.parallel_id, self.parallel_num
         )
-        self.register_parameter(
-            "one_embedding_optimizer_placeholder::" + self.name,
-            flow.nn.Parameter(flow.Tensor(1)),
-        )
+        self.weight = flow.nn.Parameter(flow.Tensor(1, device="cuda"))
+        self.reset_parameters()
+        #self.register_parameter(
+        #    "one_embedding_optimizer_placeholder" + self.name,
+        #    self.var,
+        #)
+    def reset_parameters(self) -> None:
+        flow.nn.init.uniform_(self.weight, a=-1.0, b=1.0)
 
     def _save_to_state_dict(self, destination, prefix, keep_vars):
         snapshot_timestamp_tensor = flow.tensor(
@@ -221,5 +225,5 @@ class OneEmbeddingLookup(Module):
 
     def forward(self, ids, column_ids):
         return flow._C.embedding_lookup_placeholder(
-            ids, column_ids, self.dtype, self.embedding_options,
+            self.weight, ids, column_ids, self.dtype, self.embedding_options,
         )
