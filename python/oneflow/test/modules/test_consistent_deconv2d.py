@@ -21,24 +21,32 @@ import oneflow.unittest
 from oneflow.test_utils.automated_test_util import *
 
 @autotest(n=1, auto_backward=True, check_graph=False)
-def _test_cumsum_impl(test_case, ndim, placement, sbp):
+def _test_deconv2d_impl(test_case, placement, sbp):
+    ndim = 4
+    channels = random(1, 6).to(int).value()
+    m = torch.nn.ConvTranspose2d(
+        in_channels=channels,
+        out_channels=random(1, 20).to(int).value(),
+        kernel_size=random(1, 4).to(int).value(),
+        stride=random() | nothing(),
+        padding=random(1, 3).to(int).value() | nothing(),
+        dilation=random(1, 5).to(int).value() | nothing(),
+        groups=random(1, 5).to(int).value() | nothing(),
+        padding_mode=constant("zeros") | nothing(),
+    )
+    m.train(random())
     dims = [random(1, 4) * 8 for i in range(ndim)]
     x = random_tensor(ndim, *dims)
     y = x.to_global(placement=placement, sbp=sbp)
-    dim = random(0, ndim).to(int).value()
-    z = torch.cumsum(x, dim)
-    return z
+    y = m(x)
+    return y
 
-
-class TestCumsumConsistent(flow.unittest.TestCase):
+class TestDeconv2dConsistent(flow.unittest.TestCase):
     @globaltest
-    def test_cumsum(test_case):
-        # random ndim in range [1,4]
-        ndim = random(1, 5).to(int).value()
+    def _test_deconv2d_impl(test_case):
         for placement in all_placement():
-            for sbp in all_sbp(placement, max_dim=ndim):
-                _test_cumsum_impl(test_case, ndim, placement, sbp)
-
+            for sbp in all_sbp(placement, max_dim=4):
+                _test_deconv2d_impl(test_case, placement, sbp)
 
 if __name__ == "__main__":
     unittest.main()
