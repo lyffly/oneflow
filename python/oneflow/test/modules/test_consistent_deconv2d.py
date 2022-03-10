@@ -23,10 +23,10 @@ from oneflow.test_utils.automated_test_util import *
 @autotest(n=1, auto_backward=True, check_graph=False)
 def _test_deconv2d_impl(test_case, placement, sbp):
     ndim = 4
-    channels = random(1, 6).to(int).value()
+    channels = random(1, 6).to(int).value() * 8
     m = torch.nn.ConvTranspose2d(
         in_channels=channels,
-        out_channels=random(1, 20).to(int).value(),
+        out_channels=random(1, 8).to(int).value() * 8,
         kernel_size=random(1, 4).to(int).value(),
         stride=random() | nothing(),
         padding=random(1, 3).to(int).value() | nothing(),
